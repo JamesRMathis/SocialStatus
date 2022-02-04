@@ -1,15 +1,15 @@
 import random
 
 gainActs = {
-  0: 'lorem', 
-  1: 'ipsum',
-  2: 'dolor'
+  0: 'sending dank memes.', 
+  1: 'monke.',
+  2: 'being anti-Fortnite.'
 }
 
 loseActs = {
-  0: 'sit',
-  1: 'amet', 
-  2: 'consectetur'
+  0: 'not being monke.',
+  1: 'being a discord mod.', 
+  2: 'not sending feet pics.'
 }
 
 def randGain():

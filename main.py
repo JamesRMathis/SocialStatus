@@ -34,12 +34,9 @@ async def createAccount(ctx):
     await ctx.send('You already have an account in this server!')
 
   else:
-    db[str(ctx.guild.id)]['users'] = {
-      str(ctx.message.author.id): {
-        'socialCredit': 0
-      }
-    }
+    db[str(ctx.guild.id)]['users'][str(ctx.message.author.id)] = {'socialCredit': 0}
     await ctx.send('Account created!')
+
 
 @bot.command(
   name='credit'
@@ -49,15 +46,16 @@ async def socialCredit(ctx):
     sc = db[str(ctx.guild.id)]['users'][str(ctx.message.author.id)]['socialCredit']
     await ctx.send(f'You have {sc} social credit')
   else:
-    ctx.send('You need to make an account for this server first! Use "sc ca" to do that.')
+    await ctx.send('You need to make an account for this server first! Use "sc ca" to do that.')
+
 
 @bot.command(
   name='edit',
   help=''
 )
-# @commands.hasRole('SC Editor')
+@commands.hasRole('SC Editor')
 async def editSC(ctx, user: discord.User, operation, modifier):
-  if user.id not in db[str(ctx.guild.id)]['users']:
+  if str(user.id) not in db[str(ctx.guild.id)]['users']:
     await ctx.send('This user has not made an account in this server!')
     return
 
@@ -119,8 +117,8 @@ async def grind(ctx):
     scChange = random.randint(30, 100)
     db[str(ctx.guild.id)]['users'][str(user.id)]['socialCredit'] -= scChange
     
-    embed = discord.Embed(title=f'{user.name}\'s gains')
-    embed.add_field(name='Gains', value=f'You lost {scChange} social credit for {actions.randLose()}')
+    embed = discord.Embed(title=f'{user.name}\'s losses')
+    embed.add_field(name='Losses', value=f'You lost {scChange} social credit for {actions.randLose()}')
 
     await ctx.send(embed=embed)
   
@@ -133,5 +131,43 @@ async def grind(ctx):
 async def grindError(ctx, error):
   if isinstance(error, commands.CommandOnCooldown):
     await ctx.send(f'This command is on cooldown! Try again after {round(error.retry_after, 1)} seconds!')
+
+
+@bot.command(
+  name='lb'
+)
+async def leaderboard(ctx, topX=10):
+  lb = {}
+  scores = []
+
+  for user in db[str(ctx.guild.id)]['users']:
+    score = db[str(ctx.guild.id)]['users'][user]['socialCredit']
+    lb[score] = user
+    scores.append(score)
+
+  scores = sorted(scores, reverse=True)
+
+  embed = discord.Embed(
+    title=f'Top {topX} users in the server',
+    color=0xe74c3c
+  )
+
+  i = 1
+  for score in scores:
+    id = lb[score]
+    user = await bot.fetch_user(id)
+
+    embed.add_field(
+      name=f'{i}. {user}',
+      value=f'Social Credit: {score}',
+      inline=False
+    )
+
+    if i == topX:
+      break
+    else:
+      i += 1
+
+  await ctx.send(embed=embed)
 
 bot.run(os.getenv('TOKEN'))
