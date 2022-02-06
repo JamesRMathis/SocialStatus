@@ -3,6 +3,7 @@ import random
 import discord
 from discord.ext import commands
 from replit import db
+from keepAlive import keepAlive
 import actions
 
 bot = commands.Bot(command_prefix='sc ')
@@ -25,9 +26,15 @@ async def on_guild_join(guild):
 async def on_guild_remove(guild):
   del db[str(guild.id)]
 
+@bot.event
+async def on_member_remove(member):
+  if str(member.id) in db[str(member.guild.id)]['users']:
+    del db[str(member.guild.id)]['users'][str(member.id)]
+
 
 @bot.command(
-  aliases=['ca']
+  aliases=['ca'],
+  help='Creates an account in this server so you can use SocialStatus Bot'
 )
 async def createAccount(ctx):
   if str(ctx.message.author.id) in db[str(ctx.guild.id)]['users']:
@@ -39,7 +46,9 @@ async def createAccount(ctx):
 
 
 @bot.command(
-  name='credit'
+  name='credit',
+  help='Shows how much social credit you have.',
+  shorthelp='Shows how much social credit you have'
 )
 async def socialCredit(ctx):
   if str(ctx.message.author.id) in db[str(ctx.guild.id)]['users']:
@@ -51,10 +60,18 @@ async def socialCredit(ctx):
 
 @bot.command(
   name='edit',
-  help=''
+  help='Directly edit the social credit of another user with an account. This requires you to have the "SC Editor" role. You must mention the target user, and the operations are "plus", "minus", and "set". The operation must be spelled out completely.'
 )
-@commands.hasRole('SC Editor')
 async def editSC(ctx, user: discord.User, operation, modifier):
+  if discord.utils.get(ctx.guild.roles, name='SC Editor') is None:
+    await ctx.send('The server does not have the role required! Ask an admin to add the "SC Editor" role.')
+    return
+
+  role = discord.utils.get(ctx.message.author.roles, name="SC Editor")
+  if role is None:
+    await ctx.send('You don\'t have the role to do this!')
+    return
+
   if str(user.id) not in db[str(ctx.guild.id)]['users']:
     await ctx.send('This user has not made an account in this server!')
     return
@@ -76,18 +93,22 @@ async def editSC(ctx, user: discord.User, operation, modifier):
     db[str(ctx.guild.id)]['users'][str(user.id)]['socialCredit'] = modifier
     await ctx.send(f'{user.mention} Your social credit has been set to {modifier}!')
 
-  operation = operation.lower()
+  await ctx.message.delete()
 
+  operation = operation.lower()
   if operation == 'plus':
     await plus()
-  elif operation == 'minus':
-    await minus()
-  elif operation == 'set':
-    await setSC()
-  else:
-    await ctx.send('The operation must be "plus", "minus", or "set"!')
+    return
 
-  await ctx.message.delete()
+  if operation == 'minus':
+    await minus()
+    return
+
+  if operation == 'set':
+    await setSC()
+    return
+
+  await ctx.send('The operation must be "plus", "minus", or "set"!')
 
 @editSC.error
 async def editSCError(ctx, error):
@@ -95,7 +116,9 @@ async def editSCError(ctx, error):
     await ctx.send('Could not find that user')
 
 
-@bot.command()
+@bot.command(
+  help='Grind for social credit. There is a chance to lose social credit from grinding, though...'
+)
 @commands.cooldown(1, 15, commands.BucketType.user)
 async def grind(ctx):
   if str(ctx.message.author.id) not in db[str(ctx.guild.id)]['users']:
@@ -114,7 +137,7 @@ async def grind(ctx):
     await ctx.send(embed=embed)
 
   async def loseSC():
-    scChange = random.randint(30, 100)
+    scChange = random.randint(500, 50000000)
     db[str(ctx.guild.id)]['users'][str(user.id)]['socialCredit'] -= scChange
     
     embed = discord.Embed(title=f'{user.name}\'s losses')
@@ -134,7 +157,8 @@ async def grindError(ctx, error):
 
 
 @bot.command(
-  name='lb'
+  name='lb',
+  help='Shows the top X people in the server, where x is whatever number you input.'
 )
 async def leaderboard(ctx, topX=10):
   lb = {}
@@ -170,4 +194,11 @@ async def leaderboard(ctx, topX=10):
 
   await ctx.send(embed=embed)
 
+@leaderboard.error
+async def lbError(ctx, error):
+  if isinstance(error, commands.BadArgument):
+    await ctx.send('X must be an integer!')
+
+
+keepAlive()
 bot.run(os.getenv('TOKEN'))
