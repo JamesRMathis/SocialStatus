@@ -93,8 +93,6 @@ async def editSC(ctx, user: discord.User, operation, modifier):
     db[str(ctx.guild.id)]['users'][str(user.id)]['socialCredit'] = modifier
     await ctx.send(f'{user.mention} Your social credit has been set to {modifier}!')
 
-  await ctx.message.delete()
-
   operation = operation.lower()
   if operation == 'plus':
     await plus()
@@ -145,7 +143,7 @@ async def grind(ctx):
 
     await ctx.send(embed=embed)
   
-  if random.randint(1, 10) > 4:
+  if random.randint(1, 10) > 1:
     await gainSC()
   else:
     await loseSC()
@@ -199,6 +197,10 @@ async def lbError(ctx, error):
   if isinstance(error, commands.BadArgument):
     await ctx.send('X must be an integer!')
 
+
+@bot.command()
+async def support(ctx):
+  await ctx.send(f'Here is the link to the support server\nhttps://discord.gg/ZspCYGpdwH')
 
 keepAlive()
 bot.run(os.getenv('TOKEN'))
