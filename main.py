@@ -6,7 +6,7 @@ from replit import db
 from keepAlive import keepAlive
 import actions
 
-bot = commands.Bot(command_prefix='sc ')
+bot = commands.Bot(command_prefix=['sc ', 'Sc '])
 
 # for k in db.keys():
 #   del db[k]
@@ -198,9 +198,22 @@ async def lbError(ctx, error):
     await ctx.send('X must be an integer!')
 
 
-@bot.command()
+@bot.command(
+  help='Sends an invite to the support server'
+)
 async def support(ctx):
-  await ctx.send(f'Here is the link to the support server\nhttps://discord.gg/ZspCYGpdwH')
+  supportServer = bot.get_guild(939967434255896666)
+  channel = discord.utils.get(supportServer.text_channels, name='rules')
+  invite = await channel.create_invite()
+
+  await ctx.send('Here is a link to the support server\n' + str(invite.url))
+
+
+@bot.command(
+  help='Sends the link to the top.gg page'
+)
+async def topgg(ctx):
+  await ctx.send('Here is the link to the top.gg page\n https://top.gg/bot/938561706257436712')
 
 keepAlive()
 bot.run(os.getenv('TOKEN'))
